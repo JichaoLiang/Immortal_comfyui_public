@@ -319,19 +319,46 @@ class MovieMakerUtils:
         randPick = MovieMakerUtils.randomPick(2)
 
         if randPick == 0:
-            clip = clip.set_position((-200, 0))
-            clip = MovieMakerUtils.animationsTo(clip, [(0, 0)], [resize], [pieces[0]])
+            initoffset = (-200, 0)
+
+            offsetarray = []
+            resizearray = []
+            durationarray = []
+            for i in range(0,len(pieces)):
+                if i % 2 == 0:
+                    offsetarray.append((0,0))
+                else:
+                    offsetarray.append(initoffset)
+                resizearray.append(resize)
+                durationarray.append(pieces[i])
+            clip = clip.set_position(initoffset)
+            clip = MovieMakerUtils.animationsTo(clip, offsetarray, resizearray, durationarray)
         if randPick == 1:
             enlarged = (resize[0] * 1.2, resize[1] * 1.2)
-            clip = clip.resize(enlarged).set_position((-100 * 1.2, 0))
-            clip = MovieMakerUtils.animationsTo(clip, [(-100, 0)], [resize], [pieces[0]])
+            initoffset = (-100 * 1.2, 0)
+            tooffset = (-100,0)
+
+            offsetarray = []
+            resizearray = []
+            durationarray = []
+            for i in range(0,len(pieces)):
+                if i % 2 == 0:
+                    offsetarray.append(tooffset)
+                    resizearray.append(resize)
+                else:
+                    offsetarray.append(initoffset)
+                    resizearray.append(enlarged)
+                durationarray.append(pieces[i])
+
+            clip = clip.resize(enlarged).set_position(initoffset)
+            clip = MovieMakerUtils.animationsTo(clip, offsetarray, resizearray, durationarray)
         sequence = [bg, clip]
         composited = CompositeVideoClip(sequence)
 
         dir = os.path.dirname(to)
         if not os.path.exists(dir):
             os.makedirs(dir)
-        composited.write_videofile(to,fps=24)
+        composited.write_videofile(to,fps=30)
         return to
 
     @staticmethod
@@ -364,7 +391,7 @@ class MovieMakerUtils:
 
     @staticmethod
     def test():
-        imgPath = r"D:\ComfyUI_windows_portable_nightly_pytorch\ComfyUI\output\ComfyUI_01709_.png"
+        imgPath = r"D:\ComfyUI_windows_portable_nightly_pytorch\ComfyUI\output\AnimateDiff_00214.png"
         duration = 12
         to = imgPath + ".mp4"
         MovieMakerUtils.imageToVideo(imgPath, duration, to)

@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 # from config import ImmortalConfig
 from .config import ImmortalConfig
+import wave
+from pydub import AudioSegment
 
 
 class Utils:
@@ -186,3 +188,107 @@ class Utils:
             return True
         except:
             return False
+
+    @staticmethod
+    def split_wav(wavfile=r'r:\temp.wav', breakon=0, minsec=-1, maxssec=10, scanwindowlengthsec=0.2,
+                  silentthresholdpercent=40):
+        cuttedwavfile = wavfile + ".splited.wav"
+        # wave = wave.Wave_read(r'D:\immortaldata\Immortal\temp\2024_10\13\temp_2024_10_13_21_59_59_794.wav')
+        wav = wave.Wave_read(wavfile)
+        frames = wav.readframes(wav.getnframes())
+        sampwidth = wav.getsampwidth()
+        framerate = wav.getframerate()
+        windowlength = int(framerate * scanwindowlengthsec)
+
+        convlist = []
+        framecount = 0
+        breakscount = 0
+        for idx in range(0, len(frames), int(scanwindowlengthsec * framerate / 2)):
+            window = frames[idx:idx + int(scanwindowlengthsec * framerate)]
+
+            avg = sum(window) / len(window)
+            reduce = 0
+            for d in window:
+                temp = d - avg
+                if temp < 0:
+                    temp = 0 - temp
+                reduce += temp ** 2
+            reduce /= len(window)
+            print(f"reduce:{reduce}")
+            issilent = True  # reduce < silentthreshold
+            convlist.append([reduce, issilent, idx])
+            if issilent and not convlist[-1][1]:
+                breakscount += 1
+            # seccount = framecount / framerate
+            # if breakscount > breakon and (seccount > minsec or minsec < 0):
+            #     break
+            framecount += 1
+        sortedconvlist = sorted(convlist, key=lambda x: x[0])
+        silentthreshold = sortedconvlist[int(silentthresholdpercent / 100 * len(convlist))][0]
+        print(f'threshold: {silentthreshold}')
+        for conv in convlist:
+            redu = conv[0]
+            if redu < silentthreshold + 500:
+                conv[1] = True
+            else:
+                conv[1] = False
+
+        slientpiececount = 0
+        offsetstart = 0
+        silentflag = 0
+
+        piecelist = []
+        for idx, item in enumerate(convlist):
+            avg = item[0]
+            isslient = item[1]
+            framecount = item[2]
+            newOffset = int(framecount)
+            if silentflag > 0:
+                if isslient:
+                    continue
+                else:
+                    slientpiececount += 1
+                    offsetstart = newOffset
+                    silentflag = 0
+            else:
+                if isslient or idx == len(convlist) - 1:
+                    # handle output
+                    cutted = frames[offsetstart:newOffset]
+                    piecelist.append((cutted, offsetstart / framerate, newOffset / framerate))
+                    silentflag = 1
+                else:
+                    continue
+        print(f'pieces: {len(piecelist)}')
+
+        if len(piecelist) > breakon:
+            currentitem = piecelist[breakon]
+        else:
+            currentitem = piecelist[-1]
+        breakonitem, start, stop = currentitem[0], currentitem[1], currentitem[2]
+        if stop > minsec or minsec < 0:
+            # output from 0 to stop
+            clip = AudioSegment.from_file(wavfile)
+            newclip = clip[0:stop * 1000]
+            newclip.export(cuttedwavfile)
+        else:
+            found = False
+            for item in piecelist:
+                breakonitem = item[0]
+                start = item[1]
+                stop = item[2]
+                if stop > minsec or minsec < 0:
+                    clip = AudioSegment.from_file(wavfile)
+                    newclip = clip[0:stop * 1000]
+                    newclip.export(cuttedwavfile)
+                    found = True
+                    break
+            if not found:
+                print(f'max duration: {maxssec}')
+                clip = AudioSegment.from_file(wavfile)
+                maxduration = len(clip)
+                if maxduration > maxssec:
+                    maxduration = maxssec
+                newclip = clip[0:maxduration * 1000]
+                newclip.export(cuttedwavfile)
+
+        return cuttedwavfile

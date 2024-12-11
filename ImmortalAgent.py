@@ -1,7 +1,9 @@
-# import sys
-#
-# sys.path.append('/Entity/')
-# sys.path.append('/Moviemaker/')
+# import os,sys
+# script_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+# sys.path.append(script_path)
+# sys.path.append("")
+# sys.path.append(script_path)
+# print(sys.path)
 from moviepy.editor import *
 # from Entity import ImmortalEntity
 from .MovieMakerUtils import MovieMakerUtils
@@ -31,9 +33,22 @@ class ImmortalAgent:
         videoClip = VideoFileClip(video)
         audioClip = AudioFileClip(audio)
         print(f"video clip duration:{videoClip.duration} , audio duration: {audioClip.duration}")
-        videoClip = videoClip.set_duration(audioClip.duration)
-        print(f"after process: video duration: {videoClip.duration}")
-        clip = videoClip.set_audio(audioClip)
+        if videoClip.duration > audioClip.duration:
+            videoClip = videoClip.set_duration(audioClip.duration)
+            print(f"after process: video duration: {videoClip.duration}")
+            clip = videoClip.set_audio(audioClip)
+        else:
+            pieces = []
+            leftduration = audioClip.duration
+            while leftduration > videoClip.duration:
+                pieces.append(videoClip.duration)
+                leftduration -= videoClip.duration
+            pieces.append(leftduration)
+            cliparray = []
+            for piece in pieces:
+                cliparray.append(videoClip.set_duration(piece))
+            clip = concatenate_videoclips(cliparray)
+            clip = clip.set_audio(audioClip)
         # clip = MovieMakerUtils.setBGM(videoClip, audioClip, 1.0)
         clip.write_videofile(path)
         return id, path
@@ -61,9 +76,9 @@ class ImmortalAgent:
 
 
 if __name__ == "__main__":
-    video = r""
-    audio = r""
+    video = r"D:\ComfyUI_windows_portable_nightly_pytorch\ComfyUI\output\AnimateDiff_00214.png.mp4"
+    audio = r"D:\immortaldata\Immortal\temp\2024_12\8\temp_2024_12_8_3_3_27_524.wav"
     referencePose = r""
-    id, path = ImmortalAgent.toTalkman(video, audio)
+    id, path = ImmortalAgent.replaceAudio(video, audio)
     print(path)
 

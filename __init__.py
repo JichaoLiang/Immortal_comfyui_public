@@ -20,7 +20,6 @@ import shutil
 from .Utils import Utils
 from .config import ImmortalConfig
 from .ImmortalEntity import ImmortalEntity, NodeType
-from .Wav2lipCli import Wav2lipCli
 from .OllamaCli import OllamaCli
 from .Events import EventHandler
 
@@ -143,74 +142,6 @@ class ImmortalNodes:
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 
-class ApplyVoiceConversion:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "sceneEntity": ("IMMORTALENTITY",)
-            }
-        }
-        pass
-
-    RETURN_TYPES = ("IMMORTALENTITY",)
-    # RETURN_NAMES = ("image_output_name",)
-
-    FUNCTION = "process"
-
-    # OUTPUT_NODE = False
-
-    CATEGORY = "Immortal"
-
-    def applyVC(self, node: dict):
-        if node.keys().__contains__("Temporary"):
-            temporay: dict = node["Temporary"]
-            if temporay.keys().__contains__("VCTask") and len(temporay["VCTask"].keys()) > 0:
-                inputvideokey = temporay["VCTask"]["inputvideokey"]
-                voicePath = temporay["VCTask"]["voicepath"]
-
-                print(f"vc: videokey: {inputvideokey}")
-                _, sourceaudio = Utils.generatePathId(namespace="temp", exten="wav")
-                clip = VideoFileClip.VideoFileClip(Utils.getPathById(id=inputvideokey))
-                audio = clip.audio
-                if audio is None:
-                    return None, None
-                audio.write_audiofile(sourceaudio)
-                return sourceaudio, voicePath
-        return None, None
-
-    def process(self, sceneEntity):
-        nodes = sceneEntity["Nodes"]
-        idlist = []
-        sourcelist = []
-        speakerlist = []
-        for node in nodes:
-            source, dest = self.applyVC(node)
-            if source is None:
-                continue
-            idlist.append(node['ID'])
-            sourcelist.append(source)
-            speakerlist.append(dest)
-        resultlist = Wav2lipCli.xtts_vc(sourcelist, speakerlist)
-        for i in range(0, len(idlist)):
-            node = ImmortalEntity.getNodeById(sceneEntity, idlist[i])
-            videopath = Utils.getPathById(id=node["VideoDataKey"])
-            source: str = sourcelist[i]
-            dest = resultlist[i]
-            fid, fpath = ImmortalAgent.ImmortalAgent.replaceAudio(videopath, dest)
-
-            # erase task
-            node["Temporary"].pop("VCTask")
-            # if os.path.exists(source):
-            #     os.remove(source)
-            node["VideoDataKey"] = fid
-        newEntity = Utils.cloneDict(sceneEntity)
-        return (newEntity,)
-        pass
-
 
 class ImDumpNode:
     def __init__(self):
@@ -267,68 +198,6 @@ class ImDumpEntity:
     def process(self, sceneEntity):
         jsstr = json.dumps(sceneEntity)
         return (jsstr,)
-        pass
-
-
-class ImApplyWav2lip:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "sceneEntity": ("IMMORTALENTITY",),
-                "use": (["musetalk", "wav2lip"], {"default": "musetalk"}),
-            }
-        }
-        pass
-
-    RETURN_TYPES = ("IMMORTALENTITY",)
-    # RETURN_NAMES = ("image_output_name",)
-
-    FUNCTION = "process"
-
-    # OUTPUT_NODE = False
-
-    CATEGORY = "Immortal"
-
-    def applyVA(self, node: dict):
-        if node.keys().__contains__("Temporary"):
-            temporay: dict = node["Temporary"]
-            if temporay.keys().__contains__("wav2lip") and len(temporay["wav2lip"].keys()) > 0:
-                inputvideokey = temporay["wav2lip"]["inputvideokey"]
-                voicePath = temporay["wav2lip"]["voicepath"]
-                videopath = Utils.getPathById(id=inputvideokey)
-                return videopath, voicePath
-        return None, None
-
-    def process(self, sceneEntity, use="musetalk"):
-        nodes = sceneEntity["Nodes"]
-        idlist = []
-        videolist = []
-        voicelist = []
-        for node in nodes:
-            source, dest = self.applyVA(node)
-            if source is None:
-                continue
-            idlist.append(node['ID'])
-            videolist.append(source)
-            voicelist.append(dest)
-        resultidlist, resultPathlist = Wav2lipCli.convert_batch(videolist, voicelist, use)
-        for i in range(0, len(idlist)):
-            node = ImmortalEntity.getNodeById(sceneEntity, idlist[i])
-            videopath = Utils.getPathById(id=node["VideoDataKey"])
-            source: str = videolist[i]
-            fid = resultidlist[i]
-
-            # erase task
-            node["Temporary"].pop("wav2lip")
-            # if os.path.exists(source):
-            #     os.remove(source)
-            node["VideoDataKey"] = fid
-        newEntity = Utils.cloneDict(sceneEntity)
-        return (newEntity,)
         pass
 
 
@@ -952,8 +821,8 @@ class ImAppendQuickbackNode:
 
     @classmethod
     def INPUT_TYPES(s):
-        tracebackinfo = traceback.format_stack()
-        print(f"========trace back: {''.join(tracebackinfo)}")
+        # tracebackinfo = traceback.format_stack()
+        # print(f"========trace back: {''.join(tracebackinfo)}")
         # input_dir = config.ImmortalConfig.sucaipath
         input_dir = folder_paths.get_input_directory()
         files = [item.replace(input_dir + '\\', '').replace('\\', '/') for item in
@@ -975,7 +844,7 @@ class ImAppendQuickbackNode:
             "optional": {
                 "nodepointer": ("NODE",),
                 "extraNodes": ("NODES", {"default": []}),
-                "overrideBackTitle": ("STRING", {"default": ""}),
+                "overrideBackTitle": ("STRING", {"default": "NULL"}),
                 "settings": ("STRING", {"default": "{ \"voiceid\": \"xujiang\" }"})
             }
         }
@@ -997,10 +866,10 @@ class ImAppendQuickbackNode:
                                               enableCache, nodepointer, extraNodes, settings, disabled)
 
         redirectnode = redirectToNode()
-        ett, parentpointer = redirectnode.process(ett, childpointer, nodepointer)
+        ett, parentpointer, _ = redirectnode.process(ett, childpointer, nodepointer)
         for extranode in extraNodes:
-            ett, _ = redirectnode.process(ett, childpointer, extranode)
-        if overrideBackTitle is not None and len(overrideBackTitle) > 0:
+            ett, _, _ = redirectnode.process(ett, childpointer, extranode)
+        if overrideBackTitle is not None and overrideBackTitle != "NULL":
             overridenode = ImNodeTitleOverride()
             ett, parentpointer = overridenode.process(ett, childpointer, parentpointer, overrideBackTitle)
             for extranode in extraNodes:
@@ -1816,8 +1685,6 @@ NODE_CLASS_MAPPINGS = {
     "SetEvent": SetEvent,
     "SaveImagePath": SaveImagePath,
     "ImAppendVideoNode": ImAppendVideoNode,
-    "ApplyVoiceConversion": ApplyVoiceConversion,
-    "ImApplyWav2lip": ImApplyWav2lip,
     "ImDumpEntity": ImDumpEntity,
     "ImDumpNode": ImDumpNode,
     "ImLoadPackage": ImLoadPackage,
@@ -1849,8 +1716,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SetEvent": "SetEvent",
     "SaveImagePath": "[helper]:SaveImagePath",
     "ImAppendVideoNode": "ImAppendVideoNode",
-    "ApplyVoiceConversion": "ApplyVoiceConversion",
-    "ImApplyWav2lip": "ImApplyWav2lip",
     "ImDumpEntity": "ImDumpEntity",
     "ImDumpNode": "ImDumpNode",
     "ImLoadPackage": "ImLoadPackage",

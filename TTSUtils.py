@@ -1,8 +1,13 @@
 import json
-import os.path
+import os.path,shutil
 import sys
 import requests
 from pydub import AudioSegment
+from gradio_client import Client, handle_file
+from .OllamaCli import OllamaCli
+from .DBUtils import DBUtils
+from .ChatOnlineCli import ChatGLMOnline
+
 #
 # script_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 # sys.path.append(script_path)
@@ -31,19 +36,31 @@ class TTSUtils:
     def ChatTTS_with_break(text, to, speed=5, voiceid=1342):
         pieces = TTSUtils.breakdownText(text)
         print(f"tts pieces: {pieces}")
-        from pydub import AudioSegment
         sound = None
         for piece in pieces:
-            if type(piece) == type(""):
+            type = piece[0]
+            value = piece[1]
+            if type == 'str':
                 # text path
                 id, path = Utils.generatePathId(namespace="tts", exten="wav")
                 dir = os.path.dirname(path)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                TTSUtils.ChatTTS(piece, path,speed, voiceid)
+                TTSUtils.ChatTTS(value, path, speed=speed, voiceid=voiceid)
+                # TTSUtils.cosvoiceTTS_without_break(value, path, speakerID=speakerID)
                 clip = AudioSegment.from_file(path, format='wav')
+            elif type == 'audio':
+                minsec = 2
+                maxsec = 10
+                splited = value.split('|')
+                if len(splited) > 1:
+                    minsec = int(splited[1])
+                    if len(splited) > 2:
+                        maxsec = int(splited[2])
+                audiofile = TTSUtils.audio_gen(prompt=value, minduration=minsec, maxduration=maxsec)
+                clip = AudioSegment.from_file(audiofile)
             else:
-                clip = AudioSegment.silent(duration=int(piece * 1000))
+                clip = AudioSegment.silent(duration=int(value * 1000))
 
             if sound is None:
                 sound = clip
@@ -52,21 +69,87 @@ class TTSUtils:
         sound.export(to,format='wav')
 
     @staticmethod
+    def getAudioFileByPrompt(prompt, negprompt, minduration):
+        promptkey = f"{prompt}_{negprompt}_{minduration}"
+        db = DBUtils()
+        dt = db.doQuery(f"SELECT audiofile FROM immortal.audiostore where text='{promptkey}' order by time desc limit 1")
+        if len(dt) > 0:
+            path = Utils.getPathById(id=dt[0][0])
+            return path
+        return None
+
+    @staticmethod
+    def setAudioFileByPrompt(prompt, negprompt, filepath, minduration):
+        promptkey = f"{prompt}_{negprompt}_{minduration}"
+        id, path = Utils.generatePathId(namespace="ImmortalAudio", exten='wav')
+        Utils.mkdir(path)
+        shutil.move(filepath, path)
+        db = DBUtils()
+        db.doCommand(f"INSERT INTO `immortal`.`audiostore`(`text`,`audiofile`) VALUES ('{promptkey}', '{id}');")
+        return path
+
+    @staticmethod
+    def audio_gen(prompt, negprompt=None, minduration=2, maxduration = 10):
+        wavfile = TTSUtils.getAudioFileByPrompt(prompt, negprompt, minduration)
+        if wavfile is None:
+            wavfile = TTSUtils.stable_audio_tools(prompt, negprompt)
+            wavfile = Utils.split_wav(wavfile, minsec=minduration, maxssec=maxduration, silentthresholdpercent=40)
+            wavfile = TTSUtils.setAudioFileByPrompt(prompt, negprompt, wavfile, minduration)
+        return wavfile
+
+    @staticmethod
+    def stable_audio_tools(prompt, negprompt=None):
+        client = Client("http://127.0.0.1:7861/")
+        translatedprompt, _ = ChatGLMOnline.roleplayOnce("帮我我给出的中文翻译成英文，不要给任何其他回复信息", prompt)
+        result = client.predict(
+            prompt=translatedprompt,
+            negative_prompt=negprompt,
+            trans=False,
+            seconds_start=0,
+            seconds_total=47,
+            cfg_scale=7,
+            steps=100,
+            preview_every=0,
+            seed="-1",
+            sampler_type="dpmpp-3m-sde",
+            sigma_min=0.03,
+            sigma_max=500,
+            cfg_rescale=0,
+            use_init=False,
+            init_audio=None,
+            init_noise_level=0.1,
+            api_name="/generate"
+        )
+        return result[0]
+
+    @staticmethod
     def cosvoiceTTS(text, to, speakerID='dushuai'):
         pieces = TTSUtils.breakdownText(text)
         print(f"tts pieces: {pieces}")
         sound = None
         for piece in pieces:
-            if type(piece) == type(""):
+            type = piece[0]
+            value = piece[1]
+            if type == 'str':
                 # text path
                 id, path = Utils.generatePathId(namespace="tts", exten="wav")
                 dir = os.path.dirname(path)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                TTSUtils.cosvoiceTTS_without_break(piece, path, speakerID=speakerID)
+                TTSUtils.cosvoiceTTS_without_break(value, path, speakerID=speakerID)
                 clip = AudioSegment.from_file(path, format='wav')
+            elif type == 'audio':
+                minsec = 2
+                maxsec = 10
+                splited = value.split('|')
+                if len(splited) > 1:
+                    minsec = int(splited[1])
+                    if len(splited) > 2:
+                        maxsec = int(splited[2])
+                audiofile = TTSUtils.audio_gen(prompt=value, minduration=minsec, maxduration=maxsec)
+                clip = AudioSegment.from_file(audiofile)
             else:
-                clip = AudioSegment.silent(duration=int(piece * 1000))
+                clip = AudioSegment.silent(duration=int(value * 1000))
 
             if sound is None:
                 sound = clip
@@ -157,8 +240,18 @@ class TTSUtils:
 
 
         for t in result:
-            if t[0] == 'int' and not Utils.is_float(t[1][1:-1]):
-                t[0] = 'str'
+            if t[0] == 'int':
+                if not Utils.is_float(t[1][1:-1]):
+                    if not t[1].__contains__(':'):
+                        t[0] = 'str'
+                    else:
+                        tokens = t[1][1:-1].split(':')
+                        type = tokens[0]
+                        value = tokens[1]
+                        t[0] = type
+                        t[1] = value
+                else:
+                    t[1] = float(t[1][1:-1])
 
         temptype = None
         mergedresult = []
@@ -175,21 +268,19 @@ class TTSUtils:
                 temptype = r[0]
                 mergedresult.append(r)
 
-        final = []
-        for m in mergedresult:
-            type = m[0]
-            if type == 'str':
-                final.append(m[1])
-            elif type == 'int':
-                final.append(float(m[1][1:-1]))
-        return final
+        # final = []
+        # for m in mergedresult:
+        #     type = m[0]
+        #     if type == 'str':
+        #         final.append(m[1])
+        #     elif type == 'int':
+        #         final.append(float(m[1][1:-1]))
+        return mergedresult
 
 
 if __name__ == "__main__":
     textlist = \
-        ["[speaker:liangshichang]妈妈，鲸鱼是鱼吗？[speaker:dushuaiv2]不是哦，鲸鱼虽然生活在水里，但它们其实是哺乳动物。[speaker:liangshichang]那鲸鱼为什么能长时间潜水而不呼吸呢？[speaker:dushuaiv2]因为鲸鱼有特殊的肺结构和巨大的肌肉储存氧气，可以在水中停留很长时间。这个世界真奇妙，是不是？",
-        "[speaker:liangshichang]妈妈，为什么树叶会变颜色？[speaker:dushuaiv2]秋天来了，树叶中的色素发生变化，就变成了红色、黄色或橙色。[speaker:liangshichang]那其他季节的叶子为什么不会变色呢？[speaker:dushuaiv2]因为其他季节温度适宜，叶绿素没有减少，所以保持绿色。这个世界真奇妙，是不是？",
-        "[speaker:liangshichang]妈妈，为什么水会结冰？[speaker:dushuaiv2]当温度降到0摄氏度以下时，水分子运动减慢，形成了固体结构。[speaker:liangshichang]那如果把热水放在冰箱里会不会先结冰呢？[speaker:dushuaiv2]不会哦，因为热水的热量需要通过蒸发散热，所以通常会冷却得更慢一些。这个世界真奇妙，是不是？"]
+        ["[speaker:dushuaiv2]宝贝，小朋友们不跟你玩，并不一定意味着他们不喜欢你。你知道吗？每个人都有自己的心情和想法，就像你有时候想在家里玩玩具，不想出门和其他小朋友玩一样。小朋友们不跟你玩的原因有很多：比如：小朋友们正在忙着自己的事情，他们可能在做一个特别有趣的游戏，没有注意到你想要加入。 还可能是小朋友比较害羞，不知道怎么邀请你一起玩。也可能他们不知道你也想和他们一起玩，因为有时候我们不容易看出别人是怎么想的。记住，事情的原因有很多，并不总是关于你。如果你想要和小朋友们一起玩，你可以试试主动一点，告诉他们你也想加入。如果你觉得还是有点难过，那也没关系，妈妈可以陪你一起想办法，让你能更容易地和小朋友们一起玩。 但是，请记得，你的价值不是由其他小朋友是否和你玩来决定的，你是一个很棒的孩子，不管别人怎么做，我们都非常爱你。"]
     result = []
 
     for txt in textlist:

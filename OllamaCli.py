@@ -38,7 +38,7 @@ class OllamaCli:
         return result
 
     @staticmethod
-    def roleplayOnce(system, message, model='qwen2.5'):
+    def roleplayOnce(system, message, model='qwen2-rp'):
         systemmessage = {
             'role':'system',
             'content':system

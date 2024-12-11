@@ -172,7 +172,7 @@ class Wav2lipCli:
                 toid, to = Utils.generatePathId(namespace="wav2lip", exten="mp4")
                 todir = os.path.dirname(to)
                 if not os.path.exists(todir):
-                    os.mkdir(todir)
+                    os.makedirs(todir)
                 if use=="musetalk":
                     Wav2lipCli.musetalk(voice, video, to)
                 elif use=="wav2lip":
