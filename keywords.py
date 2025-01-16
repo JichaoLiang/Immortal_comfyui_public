@@ -9,6 +9,8 @@ class ContextKeyword:
     notCustomKeys = [nodewalkcount,AutoPass,currentnodeid,bgmkey]
 
 class EntityKeyword:
+    MatchCount = "MatchCount"
+    NestedIDField = "NestedId"
     ActionKeywordMapping = "ActionKeywordMapping"
     Mapping = "Mapping"
     voiceId = "voiceid"

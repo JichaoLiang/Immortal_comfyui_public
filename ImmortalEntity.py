@@ -38,6 +38,27 @@ class ImmortalEntity:
         node["ID"] = id
         return node
 
+    def getHubActionNode(self):
+        node = {
+                  "ID": "",
+                  "Mapping": [],
+                  "Action": "",
+                  "Events": {
+                    "OnEnter": [
+                    ],
+                    "OnLeave": {
+                    }
+                  },
+                  "Data":{
+                  },
+                  "Temporary":{
+
+                  }
+              }
+        id = Utils.generateId()
+        node["ID"] = id
+        return node
+
     def getActionNode(self):
         node = {
                   "ID": "",
@@ -82,7 +103,10 @@ class ImmortalEntity:
         return prevKey.split(',')
 
     @staticmethod
-    def setPrevNode(node, key):
+    def setPrevNode(node, ky, entity=None):
+        key = ky
+        if Utils.isNestedID(ky):
+            key = Utils.stripNestedID(ky)
         prevNodes = ImmortalEntity.getPrevNode(node)
         if not prevNodes.__contains__(key):
             prevNodes.append(key)
@@ -92,7 +116,17 @@ class ImmortalEntity:
             # print(f"type of item {type(item)}")
             if item.keys().__contains__("Parent"):
                 item["Parent"] = ",".join(prevNodes)
+
+        if entity is not None and Utils.isNestedID(ky):
+            prevaction = ImmortalEntity.getNodeById(entity, key)
+            ImmortalEntity.setnestedpointer(prevaction, ky, node['ID'])
         pass
+
+    @staticmethod
+    def setnestedpointer(acitonhubnode, key, tonodeid):
+        data:dict = ImmortalEntity.getDataField(acitonhubnode)
+        nested = data[EntityKeyword.NestedIDField]
+        nested[key] = tonodeid
 
     @staticmethod
     def getNodeById(entity, nodeid):
@@ -188,11 +222,28 @@ class ImmortalEntity:
         newData = Utils.mergeDict(nodea[EntityKeyword.data], nodeb[EntityKeyword.data])
 
         newEvents = Utils.mergeDict(nodea[EntityKeyword.Events], nodeb[EntityKeyword.Events])
-        # newMapping = list(set(nodea[EntityKeyword.Mapping] + nodeb[EntityKeyword.Mapping]))
+        keysetb = set([list(b.keys())[0] for b in nodeb[EntityKeyword.Mapping]])
+
+        #merge mapping
+        newMapping = []
+        # list(set(nodea[EntityKeyword.Mapping] + nodeb[EntityKeyword.Mapping]))
+        for item in nodea[EntityKeyword.Mapping]:
+            k = list(item.keys())[0]
+            v = item[k]
+            newMapping.append({k:v})
+            if keysetb.__contains__(k):
+                keysetb.remove(k)
+        nodebmapping = nodeb[EntityKeyword.Mapping]
+        for item in nodebmapping:
+            k = list(item.keys())[0]
+            v = item[k]
+            if keysetb.__contains__(k):
+                newMapping.append({k:v})
+
         nodec = Utils.cloneDict(nodea)
         nodec[EntityKeyword.data] = newData
         nodec[EntityKeyword.Events] = newEvents
-        # nodec[EntityKeyword.Mapping] = newMapping
+        nodec[EntityKeyword.Mapping] = newMapping
         for i in joined:
             ImmortalEntity.setPrevNode(nodec, i)
 
@@ -201,6 +252,10 @@ class ImmortalEntity:
     @staticmethod
     def getDisableKey(nodeid):
         return f"disabled_{nodeid}"
+
+    @staticmethod
+    def getTraversedTagKey(actionid, nodeid):
+        return f'traversed_{actionid}_{nodeid}'
 
     @staticmethod
     def getContextField(entity):

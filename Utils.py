@@ -292,3 +292,20 @@ class Utils:
                 newclip.export(cuttedwavfile)
 
         return cuttedwavfile
+
+    @staticmethod
+    def getNestedID(immortalid, required=5):
+        result = []
+        for i in range(0, required):
+            result.append(f"nested|{immortalid}|{i}")
+        return result
+
+    @staticmethod
+    def isNestedID(immortalid:str):
+        tk = immortalid.split('|')
+        return len(tk) == 3 and tk[0].lower() == 'nested'
+
+    @staticmethod
+    def stripNestedID(immortalid:str):
+        tk = immortalid.split('|')
+        return tk[1]

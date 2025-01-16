@@ -218,7 +218,7 @@ class ImAppendVideoNode:
             "text": ("STRING", {"default": "", 'multiline': True}),
             "title": ("STRING", {"default": ""}),
             "question": ("STRING", {"default": ""}),
-            "autoRoot": (["YES", "NO"], {"default": "YES"}),
+            "autoRoot": (["YES", "NO"], {"default": "NO"}),
             "enableTTS": (["YES", "NO"], {"default": "YES"}),
             "disabled": (["YES", "NO"], {"default": "NO"}),
         },
@@ -248,11 +248,13 @@ class ImAppendVideoNode:
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
                 entity["Properties"]["root"] = node["ID"]
+        elif nodepointer == "ROOT":
+                entity["Properties"]["root"] = node["ID"]
         else:
-            ImmortalEntity.setPrevNode(node, nodepointer)
+            ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
                 for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"])
+                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
 
         # set video
         id, path = Utils.generatePathId(namespace="temp", exten='mp4')
@@ -355,7 +357,7 @@ class ImAppendFreeChatAction:
             "prompt": ("STRING", {
                 "default": "[{\"role\":\"system\",\"content\":\"请扮演一个角色，以这个角色的口吻，和我聊天，千万不要出戏，只回复角色应该说的话本身: 背景介绍：你是我失散已久的妹妹。\"}]"}),
             "videotemplatelist": ("VIDEOS", {"default": []}),
-            "autoRoot": (["YES", "NO"], {"default": "YES"}),
+            "autoRoot": (["YES", "NO"], {"default": "NO"}),
             "enableTTS": (["YES", "NO"], {"default": "YES"}),
         },
             "optional": {
@@ -384,11 +386,13 @@ class ImAppendFreeChatAction:
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
                 entity["Properties"]["root"] = node["ID"]
+        elif nodepointer == "ROOT":
+                entity["Properties"]["root"] = node["ID"]
         else:
-            ImmortalEntity.setPrevNode(node, nodepointer)
+            ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
                 for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"])
+                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
 
         # set video
         id, path = Utils.generatePathId(namespace="temp", exten='mp4')
@@ -444,6 +448,55 @@ class ImAppendFreeChatAction:
         return newEntity, node['ID']
         pass
 
+class ImAppendNodeHub:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "entity": ("IMMORTALENTITY",),
+            "type": (["MatchFirst", "RandomPick", "Sequence"], {"default": "MatchFirst"}),
+        },
+            "optional": {
+                "nodepointer": ("NODE",),
+                "extraNodes": ("NODES", {"default": []}),
+                "settings": ("STRING", {"default": "{\"MatchCount\":1}"})
+            },
+        }
+
+    CATEGORY = "Immortal"
+
+    RETURN_TYPES = ("IMMORTALENTITY", "NODE","NODE","NODE","NODE","NODE","NODE",)
+    RETURN_NAMES = ("entity", "pointer", "nested_0", "nested_1", "nested_2", "nested_3", "nested_4")
+
+    FUNCTION = "process"
+
+    def process(self, entity, type, nodepointer=None, extraNodes=None, settings=""):
+        if extraNodes is None:
+            extraNodes = []
+
+        settings:dict = json.loads(settings)
+        matchcount = 1
+        if settings.keys().__contains__('MatchCount'):
+            matchcount = settings['MatchCount']
+        node = ImmortalEntity.getHubActionNode()
+
+        if nodepointer == "ROOT":
+                entity["Properties"]["root"] = node["ID"]
+        else:
+            ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
+            if extraNodes is not None and len(extraNodes) > 0:
+                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
+                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+        node['Action'] = type
+        data: dict = ImmortalEntity.getDataField(node)
+        data[keywords.EntityKeyword.NestedIDField] = {}
+        data[EntityKeyword.MatchCount] = matchcount
+        nestedids = Utils.getNestedID(node['ID'])
+        entity['Nodes'].append(node)
+
+        newEntity = Utils.cloneDict(entity)
+        # return (newEntity,)
+        return newEntity, node['ID'],nestedids[0],nestedids[1],nestedids[2],nestedids[3],nestedids[4]
+        pass
 
 class ImAppendQuickbackVideoNode:
     @classmethod
@@ -461,7 +514,7 @@ class ImAppendQuickbackVideoNode:
             "text": ("STRING", {"default": ""}),
             "title": ("STRING", {"default": ""}),
             "question": ("STRING", {"default": ""}),
-            "autoRoot": (["YES", "NO"], {"default": "YES"}),
+            "autoRoot": (["YES", "NO"], {"default": "NO"}),
             "enableTTS": (["YES", "NO"], {"default": "YES"}),
             "disabled": (["YES", "NO"], {"default": "NO"}),
         },
@@ -522,7 +575,7 @@ class ImAppendNode:
                 "title": ("STRING", {"default": ""}),
                 "question": ("STRING", {"default": ""}),
                 "ttsvoicepath": ("STRING", {"default": ""}),
-                "autoRoot": (["YES", "NO"], {"default": "YES"}),
+                "autoRoot": (["YES", "NO"], {"default": "NO"}),
                 "skipTalk": (["YES", "NO"], {"default": "NO"}),
                 "enableCache": (["YES", "NO"], {"default": "YES"}),
                 "disabled": (["YES", "NO"], {"default": "NO"}),
@@ -551,11 +604,13 @@ class ImAppendNode:
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
                 entity["Properties"]["root"] = node["ID"]
+        elif nodepointer == "ROOT":
+                entity["Properties"]["root"] = node["ID"]
         else:
-            ImmortalEntity.setPrevNode(node, nodepointer)
+            ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
                 for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"])
+                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
         # md5Cache
         obj = {"node": "ImAppendNode", "image": image, "text": text, "title": title, "question": question,
                "autoRoot": autoRoot, "skipTalk": skipTalk}
@@ -642,7 +697,7 @@ class ImAppendImageActionNode:
                     "default": "[{\"role\":\"system\",\"content\":\"请扮演一个角色，以这个角色的口吻，和我聊天，千万不要出戏，只回复角色应该说的话本身: 背景介绍：你是我失散已久的妹妹。\"}]"}),
                 "extraimagetemplatelist": ("IMAGE",),
                 "ttsvoicepath": ("STRING", {"default": ""}),
-                "autoRoot": (["YES", "NO"], {"default": "YES"}),
+                "autoRoot": (["YES", "NO"], {"default": "NO"}),
                 "skipTalk": (["YES", "NO"], {"default": "NO"}),
                 "enableCache": (["YES", "NO"], {"default": "YES"}),
                 "disabled": (["YES", "NO"], {"default": "NO"}),
@@ -672,11 +727,13 @@ class ImAppendImageActionNode:
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
                 entity["Properties"]["root"] = node["ID"]
+        elif nodepointer == "ROOT":
+                entity["Properties"]["root"] = node["ID"]
         else:
-            ImmortalEntity.setPrevNode(node, nodepointer)
+            ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
                 for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"])
+                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
         # md5Cache
         obj = {"node": "ImAppendNode", "image": image, "text": text, "title": title, "question": question,
                "autoRoot": autoRoot, "skipTalk": skipTalk}
@@ -836,7 +893,7 @@ class ImAppendQuickbackNode:
                 "title": ("STRING", {"default": ""}),
                 "question": ("STRING", {"default": ""}),
                 "ttsvoicepath": ("STRING", {"default": ""}),
-                "autoRoot": (["YES", "NO"], {"default": "YES"}),
+                "autoRoot": (["YES", "NO"], {"default": "NO"}),
                 "skipTalk": (["YES", "NO"], {"default": "NO"}),
                 "enableCache": (["YES", "NO"], {"default": "YES"}),
                 "disabled": (["YES", "NO"], {"default": "NO"}),
@@ -1002,7 +1059,7 @@ class redirectToNode:
         # print(f"entity : {entity}")
         toNode = ImmortalEntity.getNodeById(entity, To)
         # print(f"to node: {toNode}")
-        ImmortalEntity.setPrevNode(toNode, From)
+        ImmortalEntity.setPrevNode(toNode, From, entity=entity)
 
         newEntity = Utils.cloneDict(entity)
         if overrideTargetTitle != "NULL":
@@ -1040,8 +1097,9 @@ class ImNewNode:
     def process(self, DUMMYCODE):
         entity = ImmortalEntity.getEntity()
         newEntity = Utils.cloneDict(entity)
-        return newEntity, None
+        return newEntity, "ROOT"
         pass
+
 
 
 class ImMergeNode:

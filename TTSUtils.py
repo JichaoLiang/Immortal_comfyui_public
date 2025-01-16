@@ -123,7 +123,7 @@ class TTSUtils:
         return result[0]
 
     @staticmethod
-    def cosvoiceTTS(text, to, speakerID='dushuai'):
+    def cosvoiceTTS(text, to, speakerID='dushuai', instruct=""):
         pieces = TTSUtils.breakdownText(text)
         print(f"tts pieces: {pieces}")
         sound = None
@@ -136,7 +136,7 @@ class TTSUtils:
                 dir = os.path.dirname(path)
                 if not os.path.exists(dir):
                     os.makedirs(dir)
-                TTSUtils.cosvoiceTTS_without_break(value, path, speakerID=speakerID)
+                TTSUtils.cosvoiceTTS_without_break(value, path, speakerID=speakerID, instruct=instruct)
                 clip = AudioSegment.from_file(path, format='wav')
             elif type == 'audio':
                 minsec = 2
@@ -155,12 +155,15 @@ class TTSUtils:
                 sound = clip
             else:
                 sound = sound + clip
+        Utils.mkdir(to)
         sound.export(to,format='wav')
 
     @staticmethod
-    def cosvoiceTTS_without_break(text, to, speakerID='dushuai'):
+    def cosvoiceTTS_without_break(text, to, speakerID='dushuai', instruct=""):
         headers = {"Content-Type": "application/json"}
         text = {"text": text, "speaker": speakerID, "new": 1}
+        if len(instruct) > 0:
+            text["instruct"] = instruct
         response = requests.post("http://localhost:9880", data=json.dumps(text), headers=headers)
         data = response.content
         Utils.mkdir(to)
@@ -170,17 +173,16 @@ class TTSUtils:
         pass
 
     @staticmethod
-    def cosvoiceTTS_buildin_speaker(text, to=None, defaultVoiceid="zhangzhen"):
+    def cosvoiceTTS_buildin_speaker(text, to=None):
         speakerTextList = TTSUtils.extractSpeakerFromText(text)
         sound = None
         for piece in speakerTextList:
             speakerid = piece[0]
-            if speakerid is None:
-                speakerid = defaultVoiceid
-            content = piece[1]
+            instruct = piece[1]
+            content = piece[2]
             id, path = Utils.generatePathId(namespace="temp",exten="wav")
             Utils.mkdir(path)
-            TTSUtils.cosvoiceTTS(content, path, speakerid)
+            TTSUtils.cosvoiceTTS(content, path, speakerid, instruct)
             clip = AudioSegment.from_file(path, format='wav')
             if sound is None:
                 sound = clip
@@ -201,18 +203,17 @@ class TTSUtils:
             txt = p.strip()
             if len(txt) == 0:
                 continue
-            if txt.__contains__(']'):
-                splitchar = txt.index(']')
 
-                speakerid = txt[0:splitchar]
-                rest = txt[splitchar+1:]
-            else:
-                speakerid = None
-                rest = txt
-            resultlist.append((speakerid, rest))
+            splitchar = txt.index(']')
+            speakerid = txt[0:splitchar]
+            instruct = ""
+            tk = speakerid.split('|')
+            if len(tk) > 1:
+                speakerid = tk[0]
+                instruct = tk[1]
+            rest = txt[splitchar+1:]
+            resultlist.append((speakerid, instruct, rest))
         return resultlist
-
-
     @staticmethod
     def breakdownText(text:str):
         muteMode = False
