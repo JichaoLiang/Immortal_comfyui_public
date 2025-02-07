@@ -159,6 +159,55 @@ class TTSUtils:
         sound.export(to,format='wav')
 
     @staticmethod
+    def cosvoiceTTS_with_subtitle(text, to=None, speakerID='dushuai', instruct=""):
+        pieces = TTSUtils.breakdownText(text)
+        print(f"tts pieces: {pieces}")
+        sound = None
+        subtitlesequence = []
+        offset = 0
+        for piece in pieces:
+            type = piece[0]
+            value = piece[1]
+            if type == 'str':
+                # text path
+                id, path = Utils.generatePathId(namespace="tts", exten="wav")
+                dir = os.path.dirname(path)
+                if not os.path.exists(dir):
+                    os.makedirs(dir)
+                TTSUtils.cosvoiceTTS_without_break(value, path, speakerID=speakerID, instruct=instruct)
+                clip = AudioSegment.from_file(path, format='wav')
+                duration = clip.duration_seconds
+                subtitlesequence.append((offset, duration, value))
+                offset += duration
+            elif type == 'audio':
+                minsec = 2
+                maxsec = 10
+                splited = value.split('|')
+                if len(splited) > 1:
+                    minsec = int(splited[1])
+                    if len(splited) > 2:
+                        maxsec = int(splited[2])
+                audiofile = TTSUtils.audio_gen(prompt=value, minduration=minsec, maxduration=maxsec)
+                clip = AudioSegment.from_file(audiofile)
+                duration = clip.duration_seconds
+                offset += duration
+            else:
+                clip = AudioSegment.silent(duration=int(value * 1000))
+                duration = clip.duration_seconds
+                offset += duration
+
+            if sound is None:
+                sound = clip
+            else:
+                sound = sound + clip
+        if to is None:
+            id, path = Utils.generatePathId(namespace='temp', exten='wav')
+            to = path
+        Utils.mkdir(to)
+        sound.export(to,format='wav')
+        return to, subtitlesequence
+
+    @staticmethod
     def cosvoiceTTS_without_break(text, to, speakerID='dushuai', instruct=""):
         headers = {"Content-Type": "application/json"}
         text = {"text": text, "speaker": speakerID, "new": 1}
@@ -193,6 +242,38 @@ class TTSUtils:
             Utils.mkdir(to)
         sound.export(to, format='wav')
         return to
+
+    @staticmethod
+    def cosyvoiceTTS_buildin_speaker_with_subtitle(text, to=None):
+        speakerTextList = TTSUtils.extractSpeakerFromText(text)
+        sound = None
+        subtitle = []
+        offset = 0
+        for piece in speakerTextList:
+            speakerid = piece[0]
+            instruct = piece[1]
+            content = piece[2]
+            id, path = Utils.generatePathId(namespace="temp",exten="wav")
+            Utils.mkdir(path)
+            path, subtitlechunk = TTSUtils.cosvoiceTTS_with_subtitle(content, path, speakerid, instruct)
+
+            # update offset
+            updated = []
+            for ck in subtitlechunk:
+                updated.append(((ck[0] + offset), ck[1], ck[2]))
+            subtitle += updated
+            offset += subtitlechunk[-1][0] + subtitlechunk[-1][1]
+
+            clip = AudioSegment.from_file(path, format='wav')
+            if sound is None:
+                sound = clip
+            else:
+                sound = sound + clip
+        if to is None:
+            _, to = Utils.generatePathId(namespace="temp",exten="wav")
+            Utils.mkdir(to)
+        sound.export(to, format='wav')
+        return to, subtitle
 
     @staticmethod
     def extractSpeakerFromText(text:str)->list:

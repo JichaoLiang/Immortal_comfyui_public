@@ -1,6 +1,6 @@
 import os.path
 import sys
-from . import Utils
+# from . import Utils
 # import Utils
 
 class ImmortalConfig:
@@ -9,6 +9,13 @@ class ImmortalConfig:
     sucaipath = os.path.join(basepath, r"sucai")
     packpath = os.path.join(basepath, r'package')
     objectStorePath = os.path.join(basepath, "objectstore")
+
+    font_douyin = r"C:\Windows\Fonts\douyinmeihaoti.otf"
+    font_fanti1 = "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\Windows\\Fonts\\hanyialitifan.ttf"
+    font_douyu = r"C:\Users\Administrator\AppData\Local\Microsoft\Windows\Fonts\douyuzhuiguangti.ttf"
+    font_simhei = r"C:\Windows\Fonts\simhei.ttf"
+
+    subtitlefont = font_simhei
 
     imagewhitelist = ["jpg", "png"]
     videowhitelist = ["mp4"]
@@ -26,27 +33,4 @@ class ImmortalConfig:
         return None;
         pass
 
-    @staticmethod
-    def decisionToPackPath(key):
-        fileExists = False
-        filepath = key
-        try:
-            keypath = Utils.getPathById(key)
-            fileExists = os.path.exists(keypath)
-        except Exception as e:
-            fileExists = False
-        if fileExists:
-            filepath = keypath
-        if not os.path.exists(filepath) and not fileExists or os.path.isdir(key):
-            return None
-        if filepath.__contains__("."):
-            extenName = filepath.split(".")[-1].lower()
-            if ImmortalConfig.imagewhitelist.__contains__(extenName):
-                return "images"
-            if ImmortalConfig.videowhitelist.__contains__(extenName):
-                return "videos"
-            if ImmortalConfig.audiowhitelist.__contains__(extenName):
-                return "audios"
-        return None
-        pass
     pass

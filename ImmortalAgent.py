@@ -4,7 +4,8 @@
 # sys.path.append("")
 # sys.path.append(script_path)
 # print(sys.path)
-from moviepy.editor import *
+import os
+from moviepy import *
 # from Entity import ImmortalEntity
 from .MovieMakerUtils import MovieMakerUtils
 from . import Utils
@@ -34,9 +35,9 @@ class ImmortalAgent:
         audioClip = AudioFileClip(audio)
         print(f"video clip duration:{videoClip.duration} , audio duration: {audioClip.duration}")
         if videoClip.duration > audioClip.duration:
-            videoClip = videoClip.set_duration(audioClip.duration)
+            videoClip = videoClip.with_duration(audioClip.duration)
             print(f"after process: video duration: {videoClip.duration}")
-            clip = videoClip.set_audio(audioClip)
+            clip = videoClip.with_audio(audioClip)
         else:
             pieces = []
             leftduration = audioClip.duration
@@ -46,9 +47,9 @@ class ImmortalAgent:
             pieces.append(leftduration)
             cliparray = []
             for piece in pieces:
-                cliparray.append(videoClip.set_duration(piece))
+                cliparray.append(videoClip.with_duration(piece))
             clip = concatenate_videoclips(cliparray)
-            clip = clip.set_audio(audioClip)
+            clip = clip.with_audio(audioClip)
         # clip = MovieMakerUtils.setBGM(videoClip, audioClip, 1.0)
         clip.write_videofile(path)
         return id, path

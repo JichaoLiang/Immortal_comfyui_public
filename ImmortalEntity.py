@@ -25,8 +25,8 @@ class ImmortalEntity:
                   "Events": {
                     "OnEnter": [
                     ],
-                    "OnLeave": {
-                    }
+                    "OnLeave": [
+                    ]
                   },
                   "Data":{
                   },
@@ -38,7 +38,8 @@ class ImmortalEntity:
         node["ID"] = id
         return node
 
-    def getHubActionNode(self):
+    @staticmethod
+    def getHubActionNode():
         node = {
                   "ID": "",
                   "Mapping": [],
@@ -46,8 +47,8 @@ class ImmortalEntity:
                   "Events": {
                     "OnEnter": [
                     ],
-                    "OnLeave": {
-                    }
+                    "OnLeave": [
+                    ]
                   },
                   "Data":{
                   },
@@ -70,8 +71,8 @@ class ImmortalEntity:
                   "Events": {
                     "OnEnter": [
                     ],
-                    "OnLeave": {
-                    }
+                    "OnLeave": [
+                    ]
                   },
                   "Data":{
                   },
@@ -252,6 +253,10 @@ class ImmortalEntity:
     @staticmethod
     def getDisableKey(nodeid):
         return f"disabled_{nodeid}"
+
+    @staticmethod
+    def getMuteKey(nodeid):
+        return f"mute_{nodeid}"
 
     @staticmethod
     def getTraversedTagKey(actionid, nodeid):
