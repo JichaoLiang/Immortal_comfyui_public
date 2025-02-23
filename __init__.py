@@ -6,6 +6,7 @@ import hashlib
 import traceback
 import numpy as np
 import PIL
+import torch
 from PIL import Image
 # from PIL.Image import Image
 from PIL.PngImagePlugin import PngInfo
@@ -26,7 +27,6 @@ from .Events import EventHandler
 from . import MovieMakerUtils
 from . import TTSUtils
 from .keywords import ContextKeyword, EntityKeyword
-
 
 class ImmortalNodes:
     """
@@ -242,7 +242,12 @@ class ImAppendVideoNode:
 
     def process(self, video, entity, text, title, question, autoRoot, enableTTS, nodepointer=None, extraNodes=[],
                 ttsvoicepath=None, wav2lip="NO", generatedid="", settings="", disabled="NO"):
-        settings = json.loads(settings)
+
+        setting = {}
+        try:
+            setting = json.loads(settings)
+        except:
+            pass
         node = ImmortalEntity.getNode()
         generatedid = node["ID"]
         if nodepointer is None or len(nodepointer) == 0:
@@ -268,8 +273,8 @@ class ImAppendVideoNode:
                 os.makedirs(ttsdir)
             # TTSUtils.TTSUtils.ChatTTS_with_break(text, ttsPath)
 
-            # if settings.keys().__contains__(EntityKeyword.ttsspeakerid):
-            #     speaker = settings[EntityKeyword.ttsspeakerid]
+            # if setting.keys().__contains__(EntityKeyword.ttsspeakerid):
+            #     speaker = setting[EntityKeyword.ttsspeakerid]
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath, speaker)
             # else:
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath)
@@ -381,7 +386,12 @@ class ImAppendFreeChatAction:
     def process(self, video, entity, text, title, question, action, prompt, videotemplatelist, autoRoot, enableTTS,
                 nodepointer=None, extraNodes=[], ttsvoicepath=None, wav2lip="NO", generatedid="", settings=""):
         print(f'videotemplatelist: {videotemplatelist}')
-        settings = json.loads(settings)
+
+        setting = {}
+        try:
+            setting = json.loads(settings)
+        except:
+            pass
         node = ImmortalEntity.getNode()
         generatedid = node["ID"]
         if nodepointer is None or len(nodepointer) == 0:
@@ -407,8 +417,8 @@ class ImAppendFreeChatAction:
                 os.makedirs(ttsdir)
             # TTSUtils.TTSUtils.ChatTTS_with_break(text, ttsPath)
 
-            # if settings.keys().__contains__(EntityKeyword.ttsspeakerid):
-            #     speaker = settings[EntityKeyword.ttsspeakerid]
+            # if setting.keys().__contains__(EntityKeyword.ttsspeakerid):
+            #     speaker = setting[EntityKeyword.ttsspeakerid]
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath, speaker)
             # else:
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath)
@@ -437,7 +447,7 @@ class ImAppendFreeChatAction:
         node["Text"] = text  # .encode('utf-8')
         node["Action"] = action
         data: dict = ImmortalEntity.getDataField(node)
-        data[EntityKeyword.voiceId] = settings
+        data[EntityKeyword.voiceId] = setting
         data.setdefault("Prompt", prompt)
         if len(videotemplatelist) == 0:
             raise Exception("at least one video template required.")
@@ -475,10 +485,14 @@ class ImAppendNodeHub:
         if extraNodes is None:
             extraNodes = []
 
-        settings:dict = json.loads(settings)
+        setting = {}
+        try:
+            setting = json.loads(settings)
+        except:
+            pass
         matchcount = 1
-        if settings.keys().__contains__('MatchCount'):
-            matchcount = settings['MatchCount']
+        if setting.keys().__contains__('MatchCount'):
+            matchcount = setting['MatchCount']
         node = ImmortalEntity.getHubActionNode()
 
         if nodepointer == "ROOT":
@@ -601,7 +615,11 @@ class ImAppendNode:
 
     def process(self, entity, image, text, title, question, ttsvoicepath, autoRoot, enableCache,
                 nodepointer=None, extraNodes=[], settings=None, extraimages=[], disabled="NO"):
-        settings = json.loads(settings)
+        setting = {}
+        try:
+            setting = json.loads(settings)
+        except:
+            pass
         node = ImmortalEntity.getNode()
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
@@ -631,8 +649,8 @@ class ImAppendNode:
             #     TTSUtils.TTSUtils.ChatTTS_with_break(text, ttsPath, voiceid=int(voiceseed))
             # TTSUtils.TTSUtils.ChatTTS_with_break(text, ttsPath)
 
-            # if settings.keys().__contains__(EntityKeyword.ttsspeakerid):
-            #     speaker = settings[EntityKeyword.ttsspeakerid]
+            # if setting.keys().__contains__(EntityKeyword.ttsspeakerid):
+            #     speaker = setting[EntityKeyword.ttsspeakerid]
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath, speaker)
             # else:
             #     TTSUtils.TTSUtils.cosvoiceTTS(text, ttsPath)
@@ -662,7 +680,7 @@ class ImAppendNode:
         node["Question"] = question  # .encode('utf-8')
         node["Text"] = text  # .encode('utf-8')
         data = ImmortalEntity.getDataField(node)
-        data[EntityKeyword.voiceId] = settings
+        data[EntityKeyword.voiceId] = setting
         entity['Nodes'].append(node)
 
         nodeid = node['ID']
@@ -728,7 +746,12 @@ class ImAppendImageActionNode:
     def process(self, entity, image, text, title, question, action, prompt, extraimagetemplatelist, ttsvoicepath,
                 autoRoot, enableCache,
                 nodepointer=None, extraNodes=[], settings=None,extraimages=[], disabled="NO"):
-        settings = json.loads(settings)
+
+        setting = {}
+        try:
+            setting = json.loads(settings)
+        except:
+            pass
         node = ImmortalEntity.getNode()
         if nodepointer is None or len(nodepointer) == 0:
             if autoRoot == "YES":
@@ -765,7 +788,7 @@ class ImAppendImageActionNode:
         node["Action"] = action
 
         data = ImmortalEntity.getDataField(node)
-        data[EntityKeyword.voiceId] = settings
+        data[EntityKeyword.voiceId] = setting
         data.setdefault("Prompt", prompt)
         if len(extraimagetemplatelist) == 0:
             raise Exception("at least one video template required.")
@@ -1864,6 +1887,59 @@ class SaveImagePath:
         return (os.path.join(full_output_folder, results[0]["filename"]),)
 
 
+class Molmo7BDbnbBatch:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "prompt_type": (["Describe", "Detailed Analysis"],),
+                "custom_prompt": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "placeholder": "Enter custom prompt here. If provided, this will override the prompt type selection."
+                }),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 2**32 - 1}),
+                "max_new_tokens": ("INT", {"default": 350, "min": 1, "max": 1000}),
+                "temperature": ("FLOAT", {"default": 0.6, "min": 0.1, "max": 1.0, "step": 0.1}),
+                "top_k": ("INT", {"default": 40, "min": 1, "max": 100}),
+                "top_p": ("FLOAT", {"default": 0.9, "min": 0.1, "max": 1.0, "step": 0.05}),
+                "unload_model_after_generation": ("BOOLEAN", {"default": True}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "process"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "Immortal"
+
+    def process(self, image, prompt_type, custom_prompt, seed, max_new_tokens, temperature, top_k, top_p, unload_model_after_generation):
+        import sys
+        sys.path.append("..")
+        import importlib
+
+        # 假设你想按字符串引用包 'math'
+        package_name = 'ComfyUI-Molmo.Molmo7BDbnb'
+
+        # 使用 importlib.import_module 动态导入包
+        module = importlib.import_module(package_name)
+        captions = []
+
+        images = torch.chunk(image, image.shape[0], dim=0)
+        print('image shape')
+        print(images[0].shape)
+        for img in images:
+            molmo7BDbnbObj = module.Molmo7BDbnb()
+            caption = molmo7BDbnbObj.generate_caption(img, prompt_type, custom_prompt, seed, max_new_tokens, temperature, top_k, top_p, unload_model_after_generation)[0]
+            captions.append(caption)
+
+        return (captions,)
+
 NODE_CLASS_MAPPINGS = {
     "NewNode": ImNewNode,
     "AppendNode": ImAppendNode,
@@ -1895,6 +1971,7 @@ NODE_CLASS_MAPPINGS = {
     "TurnOnOffNodeOnEnter": TurnOnOffNodeOnEnter,
     "MuteNode": MuteNode,
     "imageList": imageList,
+    "Molmo7BDbnbBatch": Molmo7BDbnbBatch,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -1929,4 +2006,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "TurnOnOffNodeOnEnter": "TurnOnOffNodeOnEnter",
     "MuteNode": "MuteNode",
     "imageList": "imageList",
+    "Molmo7BDbnbBatch": "[HELPER]Molmo7BDbnbBatch",
 }
