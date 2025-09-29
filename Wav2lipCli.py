@@ -11,16 +11,43 @@ import sys
 
 from gradio_client import client,handle_file
 from .Utils import Utils
+from .config import ImmortalConfig
 import time
 import hashlib
 import json
+import requests
 
-musetalkpkg = __import__("ComfyUI-MuseTalk")
-musetalknodes = musetalkpkg.nodes
-vhspkg = __import__("ComfyUI-VideoHelperSuite")
-vhsnodes = vhspkg.videohelpersuite.nodes
+# musetalkpkg = __import__("ComfyUI-MuseTalk")
+# musetalknodes = musetalkpkg.nodes
+# vhspkg = __import__("ComfyUI-VideoHelperSuite")
+# vhsnodes = vhspkg.videohelpersuite.nodes
 
 class Wav2lipCli:
+    # @staticmethod
+    # def lstmsync(videopath:str, driveaudiopath:str, topath:str=None):
+    #     if topath is None:
+    #         topath = f'{videopath}.output.mp4'
+    #     dirpath = os.path.join(ImmortalConfig.lstmpath)
+    #     cmdpath = os.path.join(ImmortalConfig.lstmpath, 'LstmsyncCli')
+    #     # os.system(f'cd {dirpath}')
+    #     command = f'{cmdpath} {videopath} {driveaudiopath} {topath}'
+    #     print(command)
+    #     os.system(command)
+    #     return topath
+    #     pass
+
+    @staticmethod
+    def lstmsync(videopath:str, driveaudiopath:str, topath:str=None):
+        if topath is None:
+            topath = f'{videopath}.output.mp4'
+        url = f"{ImmortalConfig.lstmsynchost}/run?video={videopath}&audio={driveaudiopath}&to={topath}"
+        result = requests.get(url)
+        jso = json.loads(result.text)
+        toresult = jso['result']
+        # print(toresult)
+        return toresult
+        pass
+
     @staticmethod
     def videocheckpointExists(videoCheckpointID:str)->bool:
         checkpoint_basepath = r'D:\MyWork\Projects\dhlive\DH_live\video_data'
@@ -51,21 +78,21 @@ class Wav2lipCli:
         print(result)
         videoname = os.path.basename(videopath)
         return videoname
-
-    @staticmethod
-    def musetalk(audioPath: str, faceVideoPath: str, toPath: str, bbox_shift=6, batch_size=16):
-        # Utils.mkdir(toPath)
-        musetalk = musetalknodes.MuseTalkRun()
-        images = musetalk.run(faceVideoPath,audioPath,bbox_shift,batch_size)[0]
-        loadaudio = vhsnodes.LoadAudio()
-        audio = loadaudio.load_audio(audio_file=audioPath, seek_seconds=0)[0]
-        videocombine = vhsnodes.VideoCombine()
-        filenames = videocombine.combine_video(images=images,audio=audio,frame_rate=30,loop_count=0,format="video/h264-mp4")
-        print(filenames)
-        filenames = filenames["result"]
-        resultpath = filenames[0][-1][-1]
-        shutil.move(resultpath,toPath)
-        pass
+    #
+    # @staticmethod
+    # def musetalk(audioPath: str, faceVideoPath: str, toPath: str, bbox_shift=6, batch_size=16):
+    #     # Utils.mkdir(toPath)
+    #     musetalk = musetalknodes.MuseTalkRun()
+    #     images = musetalk.run(faceVideoPath,audioPath,bbox_shift,batch_size)[0]
+    #     loadaudio = vhsnodes.LoadAudio()
+    #     audio = loadaudio.load_audio(audio_file=audioPath, seek_seconds=0)[0]
+    #     videocombine = vhsnodes.VideoCombine()
+    #     filenames = videocombine.combine_video(images=images,audio=audio,frame_rate=30,loop_count=0,format="video/h264-mp4")
+    #     print(filenames)
+    #     filenames = filenames["result"]
+    #     resultpath = filenames[0][-1][-1]
+    #     shutil.move(resultpath,toPath)
+    #     pass
 
     @staticmethod
     def wav2lip(audioPath: str, faceVideoPath: str, toPath: str):
@@ -153,7 +180,7 @@ class Wav2lipCli:
             print(c)
 
     @staticmethod
-    def convert_batch(videolist, voicelist, use="musetalk"):
+    def convert_batch(videolist, voicelist, use="lstmsync"):
         resultid = []
         result = []
         for i in range(0, len(videolist)):
@@ -177,8 +204,10 @@ class Wav2lipCli:
                     Wav2lipCli.musetalk(voice, video, to)
                 elif use=="wav2lip":
                     Wav2lipCli.wav2lip(voice, video, to)
+                elif use=="lstmsync":
+                    Wav2lipCli.lstmsync(video, voice, to)
                 else:
-                    Wav2lipCli.wav2lip(voice, video, to)
+                    Wav2lipCli.lstmsync(video, voice, to)
                 Utils.setObjectStoreKey(md5, json.dumps({"id":toid, "path":to}))
             resultid.append(toid)
             result.append(to)

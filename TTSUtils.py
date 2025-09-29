@@ -7,6 +7,7 @@ from gradio_client import Client, handle_file
 from .OllamaCli import OllamaCli
 from .DBUtils import DBUtils
 from .ChatOnlineCli import ChatGLMOnline
+from .config import ImmortalConfig
 
 #
 # script_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -24,7 +25,7 @@ class TTSUtils:
     def ChatTTS(text, to, speed=1, voiceid=9245):
         headers = {"Content-Type": "application/json"}
         text = {"text": text, "seed": voiceid, "speed": speed}
-        response = requests.post("http://localhost:9880", data=json.dumps(text), headers=headers)
+        response = requests.post(ImmortalConfig.cosyvoiceurl, data=json.dumps(text), headers=headers)
         data = response.content
         Utils.mkdir(to)
         with open(to, mode='wb') as f:
@@ -100,7 +101,7 @@ class TTSUtils:
     @staticmethod
     def stable_audio_tools(prompt, negprompt=None):
         client = Client("http://127.0.0.1:7861/")
-        translatedprompt, _ = ChatGLMOnline.roleplayOnce("帮我我给出的中文翻译成英文，不要给任何其他回复信息", prompt)
+        translatedprompt, _ = ChatGLMOnline.roleplayDeepseekOnce("帮我我给出的中文翻译成英文，不要给任何其他回复信息", prompt)
         result = client.predict(
             prompt=translatedprompt,
             negative_prompt=negprompt,
@@ -213,7 +214,7 @@ class TTSUtils:
         text = {"text": text, "speaker": speakerID, "new": 1}
         if len(instruct) > 0:
             text["instruct"] = instruct
-        response = requests.post("http://localhost:9880", data=json.dumps(text), headers=headers)
+        response = requests.post(ImmortalConfig.cosyvoiceurl, data=json.dumps(text), headers=headers)
         data = response.content
         Utils.mkdir(to)
         with open(to, mode='wb') as f:
@@ -262,7 +263,8 @@ class TTSUtils:
             for ck in subtitlechunk:
                 updated.append(((ck[0] + offset), ck[1], ck[2]))
             subtitle += updated
-            offset += subtitlechunk[-1][0] + subtitlechunk[-1][1]
+            if len(subtitlechunk) > 0:
+                offset += subtitlechunk[-1][0] + subtitlechunk[-1][1]
 
             clip = AudioSegment.from_file(path, format='wav')
             if sound is None:

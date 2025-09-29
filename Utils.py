@@ -294,11 +294,16 @@ class Utils:
         return cuttedwavfile
 
     @staticmethod
-    def getNestedID(immortalid, required=5):
+    def getNestedID(immortalid, required=5, skip=0):
         result = []
-        for i in range(0, required):
+        for i in range(skip, required):
             result.append(f"nested|{immortalid}|{i}")
         return result
+
+
+    @staticmethod
+    def mapIndexToNestedID(immortalid, index):
+        return f"nested|{immortalid}|{index}"
 
     @staticmethod
     def isNestedID(immortalid:str):

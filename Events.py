@@ -1,5 +1,6 @@
 from . import keywords
 from . import ImmortalEntity
+from . import FreeForm
 
 class EventBehavior:
     @staticmethod
@@ -128,6 +129,11 @@ class EventBehavior:
         return result1 or result2
         pass
 
+    @staticmethod
+    def Freeform(field:dict, var)->bool:
+        result:bool = FreeForm.calculate(var[0], field)
+        return result
+
 class EventHandler:
     Eventsdict = {
         "Set": EventBehavior.set,
@@ -144,7 +150,8 @@ class EventHandler:
         "contains": EventBehavior.contains,
         "not_contains": EventBehavior.notContains,
         "and": EventBehavior.And,
-        "or": EventBehavior.Or
+        "or": EventBehavior.Or,
+        "freeform": EventBehavior.Freeform
     }
 
     @staticmethod
@@ -153,7 +160,7 @@ class EventHandler:
             k = item.keys().__iter__().__next__()
             val = item[k]
             var1 = val[0]
-            var2 = val[1]
+            var2 = FreeForm.calculate(str(val[1]),context)
             if EventHandler.Eventsdict.keys().__contains__(k):
                 func = EventHandler.Eventsdict[k]
                 print(f'var1:{var1} var2: {var2}')

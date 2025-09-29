@@ -8,12 +8,15 @@ class ImmortalConfig:
     basepath = os.path.join(base, "Immortal")
     sucaipath = os.path.join(basepath, r"sucai")
     packpath = os.path.join(basepath, r'package')
+    bgmpath = os.path.join(basepath, r'bgm')
     objectStorePath = os.path.join(basepath, "objectstore")
+    cosyvoiceurl = "http://localhost:9880"
 
     font_douyin = r"C:\Windows\Fonts\douyinmeihaoti.otf"
     font_fanti1 = "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\Windows\\Fonts\\hanyialitifan.ttf"
     font_douyu = r"C:\Users\Administrator\AppData\Local\Microsoft\Windows\Fonts\douyuzhuiguangti.ttf"
     font_simhei = r"C:\Windows\Fonts\simhei.ttf"
+    lstmsynchost = r"http://127.0.0.1:8787/"
 
     subtitlefont = font_simhei
 

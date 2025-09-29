@@ -3,6 +3,8 @@ import re
 import random
 import shutil
 from pathlib import Path
+from typing import Literal
+
 import librosa
 import moviepy
 from moviepy import *
@@ -13,7 +15,7 @@ from . import config
 from .Utils import Utils
 from .TTSUtils import TTSUtils
 from .config import ImmortalConfig
-
+from . import MovieEffect
 # from moviepy.video.compositing import *
 from moviepy.video.VideoClip import TextClip
 #
@@ -388,23 +390,24 @@ class MovieMakerUtils:
             durationSec = clip.duration
 
         # remove breath and laughter
-        text = text.replace('[breath]', ' ').replace('[laughter]', '')
+        text = text.replace('[breath]', '$$').replace('[laughter]', '$$')
         enlarged = clip.resized((720, 1280))
         pieces = MovieMakerUtils.splitText(text)
         offsetduration = offsetSec
         textsubtitlecliplist = []
-        for piece in pieces:
-            rows = len(piece) / 20
+        for piec in pieces:
+            rows = len(piec) / 20
+            piece = piec.replace('$', '')
             question = MovieMakerUtils.seperatetextbynewline(piece,1920,80, charcount=8)
             if rows > 4:
                 question = MovieMakerUtils.seperatetextbynewline(piece, 1920, 28, charcount=8)
-                rows = len(piece) / 28
+                rows = len(piec) / 28
             duration = durationSec * len(piece) / len(text)
             fontsize = 65
             if rows > 3: # 三行以上,太高了
                 fontsize = 48
             print(ImmortalConfig.subtitlefont)
-            titleClip: TextClip = TextClip(text=question, font=ImmortalConfig.subtitlefont, horizontal_align='center', color='white', stroke_color='black', font_size=fontsize, size=(720 - 60, 480))
+            titleClip: TextClip = TextClip(text=question, font=ImmortalConfig.subtitlefont, horizontal_align='center', color='white', stroke_color='black', stroke_width=2, font_size=fontsize, size=(720 - 60, 480))
             # margin 30
             titleClip = titleClip.with_position((30, 800 - 30))
             # if titleClip.size[0] > 1920 * 0.9:
@@ -418,6 +421,17 @@ class MovieMakerUtils:
         composited = CompositeVideoClip(textsubtitlecliplist).resized(clip.size)
         return composited
         pass
+
+    @staticmethod
+    def concateVideoWithEffect(videolist:list, effect:Literal[None,'none','fade','zoom','rotate','slide']='fade', to=None):
+        clips = [VideoFileClip(v) for v in videolist]
+        concated = MovieEffect.concateClipList(clips, effect=effect)
+        if to is None:
+            id, path = Utils.generatePathId(namespace='temp', exten='mp4')
+            Utils.mkdir(path)
+            to = path
+        concated.write_videofile(to)
+        return to
 
     @staticmethod
     def captionTextlistToVideoClip(clip:VideoClip, subtitlelist: list, to=None, returnclip=False):
@@ -598,10 +612,14 @@ class MovieMakerUtils:
             else:
                 lastbreakpoint = breakpoints[i-1]
             pieceduration = breakpoint - lastbreakpoint
-            pieceVideo = MovieMakerUtils.imageToVideo(img, pieceduration)
-            videolist.append(pieceVideo)
+            if pieceduration > 0:
+                pieceVideo = MovieMakerUtils.imageToVideo(img, pieceduration)
+                videolist.append(pieceVideo)
         cliplist = [VideoFileClip(v) for v in videolist]
-        concated = concatenate_videoclips(cliplist)
+        if len(cliplist) < 2:
+            concated = cliplist[0]
+        else:
+            concated = MovieEffect.concateClipList(cliplist) # concatenate_videoclips(cliplist)
         for clip in cliplist:
             clip.reader.close()
             # clip.audio.reader.close()

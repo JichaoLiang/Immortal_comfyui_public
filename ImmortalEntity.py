@@ -3,6 +3,24 @@ from .Events import EventHandler
 from .keywords import EntityKeyword
 
 class ImmortalEntity:
+
+    _instance = None
+
+    @staticmethod
+    def instance():
+        if ImmortalEntity._instance is None:
+            ImmortalEntity._instance = ImmortalEntity.getEntity()
+        return ImmortalEntity._instance
+
+    @staticmethod
+    def setInstance(entity):
+        ImmortalEntity._instance = entity
+
+    @staticmethod
+    def clearAndNewInstance():
+        ImmortalEntity._instance = None
+        return ImmortalEntity.instance()
+
     @staticmethod
     def getEntity():
         entity = {
@@ -60,11 +78,12 @@ class ImmortalEntity:
         node["ID"] = id
         return node
 
-    def getActionNode(self):
+    @staticmethod
+    def getActionNode():
         node = {
                   "ID": "",
                   "Mapping": [],
-                  "VideoDataKey": "",
+                  # "VideoDataKey": "",
                   "Action": "",
                   "Title": "",
                   "Question": "",
@@ -116,7 +135,7 @@ class ImmortalEntity:
             # print(f"item {item}")
             # print(f"type of item {type(item)}")
             if item.keys().__contains__("Parent"):
-                item["Parent"] = ",".join(prevNodes)
+               item["Parent"] = ",".join(prevNodes)
 
         if entity is not None and Utils.isNestedID(ky):
             prevaction = ImmortalEntity.getNodeById(entity, key)

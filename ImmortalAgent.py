@@ -26,6 +26,15 @@ class ImmortalAgent:
         pass
 
     @staticmethod
+    def setBGM(video, audio, vol=0.8):
+        id, path = Utils.Utils.generatePathId(namespace="temp", exten='mp4')
+        vclip = VideoFileClip(video)
+        aclip = AudioFileClip(audio)
+        clip = MovieMakerUtils.setBGM(vclip,aclip, vol=vol)
+        clip.write_videofile(path,fps=30)
+        return id, path
+
+    @staticmethod
     def replaceAudio(video, audio):
         id, path = Utils.Utils.generatePathId(namespace="replaceaudio", exten='mp4')
         dir = os.path.dirname(path)
