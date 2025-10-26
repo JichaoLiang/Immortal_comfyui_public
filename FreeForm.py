@@ -8,13 +8,71 @@ OperatorTable = Dict[str, Callable[[List[Expression]], Any]]
 
 def tokenize(expression: str) -> List[str]:
     """
-    将表达式字符串分割成标记(tokens)
+    将表达式字符串分割成标记(tokens)，支持字符串常量
     """
-    # 在括号前后添加空格，然后分割
-    expression = re.sub(r'([()])', r' \1 ', expression)
-    # 移除多余空格并分割
-    tokens = [token for token in expression.split() if token]
+    tokens = []
+    i = 0
+    n = len(expression)
+
+    while i < n:
+        char = expression[i]
+
+        # 跳过空白字符
+        if char.isspace():
+            i += 1
+            continue
+
+        # 处理字符串常量（单引号或双引号）
+        if char in ['"', "'"]:
+            quote_char = char
+            j = i + 1
+            # 查找匹配的结束引号，处理转义情况
+            while j < n:
+                if expression[j] == quote_char:
+                    # 检查是否是转义的引号
+                    if j > 0 and expression[j - 1] == '\\':
+                        j += 1
+                        continue
+                    break
+                j += 1
+
+            if j >= n:
+                raise ValueError(f"Unclosed string literal starting at position {i}")
+
+            # 提取整个字符串（包含引号）
+            token = expression[i:j + 1]
+            tokens.append(token)
+            i = j + 1
+            continue
+
+        # 处理括号
+        if char in ['(', ')']:
+            tokens.append(char)
+            i += 1
+            continue
+
+        # 处理其他标记（运算符、变量、数字等）
+        j = i
+        while j < n and not expression[j].isspace() and expression[j] not in ['(', ')', '"', "'"]:
+            j += 1
+
+        if j > i:
+            token = expression[i:j]
+            tokens.append(token)
+            i = j
+        else:
+            i += 1
+
     return tokens
+# def tokenize(expression: str) -> List[str]:
+#     """
+#     将表达式字符串分割成标记(tokens)
+#     """
+#     # 在括号前后添加空格，然后分割
+#     expression = re.sub(r'([()])', r' \1 ', expression)
+#     # 移除多余空格并分割
+#     tokens = [token for token in expression.split() if token]
+#     return tokens
 
 
 def parse(tokens: List[str]) -> Expression:
@@ -63,7 +121,7 @@ def evaluate(
         if isinstance(test, (int, float)):
             return test
         # 变量查找
-        if test[0] == '"' and test[-1] == '"':
+        if (test[0] == '"' and test[-1] == '"') or (test[0] == '\'' and test[-1] == '\''):
             return test[1:-1]
         if not test in env:
             env[test] = 0
@@ -98,10 +156,26 @@ def toBool(val)->bool:
         return len(val) > 0
     pass
 
+def switchFunc(ops):
+    for i in range(0, len(ops), 2):
+        if len(ops) <= i + 1:
+            break
+        op = ops[i]
+        param = ops[i+1]
+        if toBool(op):
+            return param
+    return ops[-1]
+
 # 预定义基础运算符
 DEFAULT_OPERATOR_TABLE: OperatorTable = {
     # 条件运算符
     'if': lambda ops: ops[1] if toBool(ops[0]) else ops[2],
+    "switch": lambda ops: switchFunc(ops),
+
+    # 字符串运算符
+    'concat': lambda ops: ''.join(ops),
+    'str-length': lambda ops: len(ops[0]),
+    'str-equal': lambda ops: ops[0] == ops[1],
 
     # 比较运算符
     '<': lambda ops: ops[0] < ops[1],
@@ -226,7 +300,7 @@ if __name__ == "__main__":
     # testTriton()
     # rename()
     # 示例1: 基本运算
-    expr1 = "\"abc\""
+    expr1 = "\"ab \t c\""
     vars1 = {'a': 1, 'b': 2}
     result1 = calculate(expr1, vars1)
     print(f"Example 1: {expr1} = {result1}")  # 输出: 2

@@ -310,8 +310,10 @@ class ImAppendVideoNode:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                # for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
+                #     ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
 
         # set video
         id, path = Utils.generatePathId(namespace="temp", exten='mp4')
@@ -468,8 +470,8 @@ class ImAppendFreeChatAction:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
 
         # set video
         id, path = Utils.generatePathId(namespace="temp", exten='mp4')
@@ -580,8 +582,11 @@ class ImAppendNodeHub:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                # for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
+                #     ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
+
         node['Action'] = type
         data: dict = ImmortalEntity.getDataField(node)
         data[keywords.EntityKeyword.NestedIDField] = {}
@@ -598,7 +603,7 @@ class ImAppendNodeAction:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {
-            "type": (["Redirect"], {"default": "MatchFirst"}),
+            "type": (["Redirect"], {"default": "Redirect"}),
             "title": ("STRING", {"default": ""}),
             "question": ("STRING", {"default": ""}),
             "freeform": ("STRING", {"default": "", 'multiline': True}),
@@ -637,8 +642,8 @@ class ImAppendNodeAction:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
         node['Action'] = type
         node['Title'] = title
         node['Question'] = question
@@ -800,8 +805,10 @@ class ImAppendNode:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                # for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
+                #     ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
         # md5Cache
         obj = {"node": "ImAppendNode", "image": image, "text": text, "title": title, "question": question,
                "extraimages":','.join(extraimages), "settings": settings }
@@ -915,8 +922,8 @@ class ImAppendImageActionNode:
         else:
             ImmortalEntity.setPrevNode(node, nodepointer, entity=entity)
             if extraNodes is not None and len(extraNodes) > 0:
-                for nd in [ImmortalEntity.getNodeById(entity, n) for n in extraNodes]:
-                    ImmortalEntity.setPrevNode(node, nd["ID"], entity=entity)
+                for ndid in extraNodes:
+                    ImmortalEntity.setPrevNode(node, ndid, entity=entity)
         # md5Cache
         obj = {"node": "ImAppendNode", "image": image, "text": text, "title": title, "question": question,
                "settings": settings }

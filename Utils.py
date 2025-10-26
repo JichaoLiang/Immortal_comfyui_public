@@ -296,7 +296,7 @@ class Utils:
     @staticmethod
     def getNestedID(immortalid, required=5, skip=0):
         result = []
-        for i in range(skip, required):
+        for i in range(skip, skip + required):
             result.append(f"nested|{immortalid}|{i}")
         return result
 
