@@ -1333,13 +1333,14 @@ class ImNewNode:
     def __init__(self):
         pass
 
+
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
-                "DUMMYCODE": ("STRING", {"default": ""}),
             }
         }
         pass
@@ -1353,7 +1354,7 @@ class ImNewNode:
 
     CATEGORY = "Immortal"
 
-    def process(self, DUMMYCODE):
+    def process(self, seed):
         entity = ImmortalEntity.clearAndNewInstance()
         newEntity = Utils.cloneDict(entity)
         return newEntity, "ROOT"

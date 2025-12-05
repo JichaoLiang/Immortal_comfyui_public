@@ -4,7 +4,7 @@ import requests
 
 class ChatGLMOnline:
     @staticmethod
-    def get_access_token(api_key="a6bcca36bd8c1c95", api_secret="50cc2d10cc5c7a31eded5a722826dd87"):
+    def get_access_token(api_key="", api_secret=""):
         url = "https://chatglm.cn/chatglm/assistant-api/v1/get_token"
         data = {
             "api_key": api_key,
@@ -17,7 +17,7 @@ class ChatGLMOnline:
 
     @staticmethod
     def chatGLMOnce(message, history=[]):
-        apikey = "2589d7e902dab00b37a557070d95adda.U3pvBSh4ZIHbnNf1"
+        apikey = ""
         print(apikey)
         client=  ZhipuAI(api_key=apikey)
         client.api_key = apikey
@@ -38,7 +38,7 @@ class ChatGLMOnline:
 
     @staticmethod
     def deepseekOnce(message, history=[]):
-        apikey = "sk-1928faffa56a40a196296ecce44cdaec"
+        apikey = ""
         base_url="https://api.deepseek.com"
 
         client = OpenAI(api_key=apikey, base_url=base_url)

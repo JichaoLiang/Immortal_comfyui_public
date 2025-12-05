@@ -2,20 +2,23 @@ import os.path
 import sys
 # from . import Utils
 # import Utils
+import folder_paths
+
 
 class ImmortalConfig:
-    base = r"d:\immortaldata"
+    base = os.path.join(folder_paths.base_path, "immortaldata") #  r"d:\immortaldata"
     basepath = os.path.join(base, "Immortal")
     sucaipath = os.path.join(basepath, r"sucai")
     packpath = os.path.join(basepath, r'package')
     bgmpath = os.path.join(basepath, r'bgm')
     objectStorePath = os.path.join(basepath, "objectstore")
+    fontPath = os.path.join(basepath, "fonts")
     cosyvoiceurl = "http://localhost:9880"
 
     font_douyin = r"C:\Windows\Fonts\douyinmeihaoti.otf"
     font_fanti1 = "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\Windows\\Fonts\\hanyialitifan.ttf"
     font_douyu = r"C:\Users\Administrator\AppData\Local\Microsoft\Windows\Fonts\douyuzhuiguangti.ttf"
-    font_simhei = r"C:\Windows\Fonts\simhei.ttf"
+    font_simhei = os.path.join(fontPath, r"simhei.ttf")
     lstmsynchost = r"http://127.0.0.1:8787/"
 
     subtitlefont = font_simhei
@@ -23,6 +26,15 @@ class ImmortalConfig:
     imagewhitelist = ["jpg", "png"]
     videowhitelist = ["mp4"]
     audiowhitelist = ["mp3", "wav"]
+
+    @staticmethod
+    def tryCreatePath(pathlist):
+        for p in pathlist:
+            if p is not None:
+                if not os.path.exists(p):
+                    os.mkdir(p)
+
+    tryCreatePath([base, basepath, sucaipath, packpath, bgmpath, objectStorePath, fontPath])
 
     @staticmethod
     def grepFullpath(id, basedir):
