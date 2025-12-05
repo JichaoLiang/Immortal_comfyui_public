@@ -93,17 +93,19 @@ class TTSUtils:
     def audio_gen(prompt, negprompt=None, minduration=2, maxduration = 10):
         wavfile = TTSUtils.getAudioFileByPrompt(prompt, negprompt, minduration)
         if wavfile is None:
-            wavfile = TTSUtils.stable_audio_tools(prompt, negprompt)
+            wavfile = TTSUtils.stable_audio_tools(prompt, negprompt) # if you have no deepseek apikey, turn off.
+            # wavfile = TTSUtils.stable_audio_tools(prompt, negprompt, False) # if you have no deepseek apikey, which means you should input prompt in English instead, turn on.
             wavfile = Utils.split_wav(wavfile, minsec=minduration, maxssec=maxduration, silentthresholdpercent=40)
             wavfile = TTSUtils.setAudioFileByPrompt(prompt, negprompt, wavfile, minduration)
         return wavfile
 
     @staticmethod
-    def stable_audio_tools(prompt, negprompt=None):
+    def stable_audio_tools(prompt, negprompt=None, translate=True):
         client = Client("http://127.0.0.1:7861/")
-        translatedprompt, _ = ChatGLMOnline.roleplayDeepseekOnce("帮我我给出的中文翻译成英文，不要给任何其他回复信息", prompt)
+        if translate:
+            prompt, _ = ChatGLMOnline.roleplayDeepseekOnce("帮我我给出的中文翻译成英文，不要给任何其他回复信息", prompt)
         result = client.predict(
-            prompt=translatedprompt,
+            prompt=prompt,
             negative_prompt=negprompt,
             trans=False,
             seconds_start=0,
@@ -122,6 +124,7 @@ class TTSUtils:
             api_name="/generate"
         )
         return result[0]
+
 
     @staticmethod
     def cosvoiceTTS(text, to, speakerID='dushuai', instruct=""):
